@@ -23,7 +23,7 @@ is fully untrusted.
 ┌─────────────────────────────────────────────────────────────────┐
 │                         OUTSIDE SYSTEM                          │
 │                                                                 │
-│   User  ──────►  Authentication Provider                       │
+│   User  ──────►  Authentication Provider                        │
 │                        │                                        │
 │                        │  verified principal_id                 │
 │                        ▼                                        │
@@ -33,10 +33,10 @@ is fully untrusted.
 ┌─────────────────────────────────────────────────────────────────┐
 │                        OUR SYSTEM                               │
 │                                                                 │
-│   ┌─────────────────┐                                          │
-│   │ Session Manager │── creates session ──────────────────┐   │
-│   └─────────────────┘                                      │   │
-│                                                             ▼   │
+│   ┌─────────────────┐                                           │
+│   │ Session Manager │── creates session ──────────────────┐     │
+│   └─────────────────┘                                      │    │
+│                                                            ▼    │
 │   ┌─────────────────┐    reads constraints (planning)  ┌──────────────┐
 │   │                 │ ──────────────────────────────►  │              │
 │   │  Agent (LLM)    │                                  │  State Store │
@@ -160,9 +160,9 @@ The Agent may NOT:
 - Influence Interceptor decisions
 - Assert that constraints have been satisfied
 
-The Agent is treated as fully untrusted at all times. It may
-hallucinate. It may be manipulated through prompt injection. It may
-be outdated. It may have been given contradictory instructions.
+The Agent is treated as fully untrusted at all times. It may hallucinate.
+It may be manipulated through prompt injection. It may be outdated.
+It may have been given contradictory instructions.
 None of this affects enforcement — because the Agent has no role
 in enforcement.
 
@@ -448,8 +448,8 @@ The components swap out. The invariant does not.
 
 ## What This Architecture Does Not Solve
 
-Physical session hijacking where an authenticated user leaves their
-terminal unlocked. This is addressed by session expiry (FR-9) and
+Physical session hijacking where an authenticated user leaves their terminal unlocked.
+This is addressed by session expiry (FR-9) and
 re-authentication for sensitive actions (FR-10) — both implemented
 in the prototype — but these are mitigations, not complete solutions.
 Physical security is outside the scope of any software system.
