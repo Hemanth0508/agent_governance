@@ -95,6 +95,10 @@ compares the current time against this field on every request.
 If current time is past expires_at, the session is rejected
 regardless of identity match. This enforces FR-9.
 
+Default duration is 3600 seconds. For the session expiry 
+demonstration scenario, sessions are created with a 2 second 
+duration so expiry can be observed immediately.
+
 **active**
 1 = session is active. 0 = session has been explicitly revoked.
 A session can be revoked before it expires. Both expiry and
@@ -181,6 +185,11 @@ WHERE session_id = ?
 ORDER BY set_at DESC
 LIMIT 1;
 ```
+
+If no rows exist for a given session_id and constraint_key, 
+the default value is returned. For budget_spent the default 
+is 0.0. For pii_accessed the default is false. 
+For reauth_verified the default is false.
 
 ### Mid-Session Constraint Changes
 

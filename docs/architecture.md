@@ -293,7 +293,7 @@ Step 3 — Agent reads constraints (planning)
 
 Step 4 — Agent proposes action
          Sends to Interceptor:
-         { session_id, claimed_principal, tool, action }
+         { session_id, claimed_principal, tool, action, metadata }
 
 Step 5 — Interceptor validates
          Reads session from State Store
@@ -309,6 +309,9 @@ Step 6a — BLOCK
 Step 6b — ALLOW
           Interceptor executes tool call
           Writes any triggered state transitions to State Store
+          Trigger map: query_pii_table on database → writes pii_accessed = true.
+          process_payment or spend on budget_spend → writes budget_spent = new total.
+          valid_credentials on reauth_check → writes reauth_verified = true.
           Writes ALLOWED record to execution log
           Returns result to Agent
 ```
