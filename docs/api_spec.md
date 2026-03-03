@@ -236,6 +236,17 @@ Examples:
 
 ---
 
+## Sensitive Actions List
+
+Actions that require reauth_verified = true before proceeding.
+Defined at the system level. Not configurable by the agent.
+
+  query_pii_table
+  access_sensitive
+
+---
+
+
 ## Metadata Schema
 
 The metadata field in validate() carries action specific parameters the Interceptor needs to evaluate constraints.
