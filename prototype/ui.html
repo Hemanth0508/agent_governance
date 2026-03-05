@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Agent Governance</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;color:#e6edf3;font-family:monospace;font-size:14px}
+header{background:#161b22;border-bottom:1px solid #30363d;padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+header h1{font-size:15px;color:#58a6ff}
+header p{color:#8b949e;font-size:11px}
+.layout{display:grid;grid-template-columns:1fr 1fr;height:calc(100vh - 57px)}
+.panel{padding:20px;overflow-y:auto}
+.left{border-right:1px solid #30363d}
+.ptitle{color:#8b949e;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px}
+.sbtn{display:block;width:100%;background:#161b22;border:1px solid #30363d;color:#e6edf3;padding:10px 14px;margin-bottom:8px;cursor:pointer;text-align:left;font-family:monospace;font-size:12px;border-radius:4px}
+.sbtn:hover{border-color:#58a6ff;color:#58a6ff}
+.sbtn small{color:#6e7681;font-size:10px;display:block;margin-top:2px}
+hr{border:none;border-top:1px solid #30363d;margin:14px 0}
+
+/* --- Expandable Card --- */
+.card{background:#161b22;border:1px solid #30363d;border-radius:4px;margin-bottom:8px;animation:fi .3s ease;overflow:hidden}
+.card.ok{border-left:3px solid #3fb950}
+.card.no{border-left:3px solid #f85149}
+.card.info{border-left:3px solid #58a6ff}
+.card-top{padding:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.card-top:hover{background:#1c2128}
+.card-top-left{flex:1}
+.clabel{font-size:12px;font-weight:bold;margin-bottom:3px}
+.clabel.ok{color:#3fb950}
+.clabel.no{color:#f85149}
+.clabel.info{color:#58a6ff}
+.creason{color:#8b949e;font-size:11px;margin-bottom:2px}
+.cnote{color:#d29922;font-size:10px}
+.chevron{color:#6e7681;font-size:11px;flex-shrink:0;transition:transform .2s;margin-top:2px}
+.card.open .chevron{transform:rotate(90deg)}
+.card-body{display:none;border-top:1px solid #21262d;padding:12px}
+.card.open .card-body{display:block}
+.detail-block{margin-bottom:10px}
+.detail-block:last-child{margin-bottom:0}
+.detail-title{color:#6e7681;font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.detail-row{display:grid;grid-template-columns:130px 1fr;gap:4px;font-size:11px;margin-bottom:3px;align-items:start}
+.dk{color:#6e7681}
+.dv{color:#e6edf3;word-break:break-all}
+.dv.g{color:#3fb950}.dv.r{color:#f85149}.dv.b{color:#79c0ff}.dv.y{color:#d29922}
+
+.empty{color:#6e7681;font-size:12px;text-align:center;padding:40px 0}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.tabs{display:flex;border-bottom:1px solid #30363d;margin-bottom:14px}
+.tab{padding:7px 14px;cursor:pointer;color:#8b949e;font-size:11px;border-bottom:2px solid transparent}
+.tab.active{color:#58a6ff;border-bottom-color:#58a6ff}
+.tc{display:none}
+.tc.active{display:block}
+.ig{margin-bottom:10px}
+.ig label{display:block;color:#8b949e;font-size:10px;margin-bottom:3px}
+.ig input{background:#0d1117;border:1px solid #30363d;color:#e6edf3;padding:7px 9px;width:100%;font-family:monospace;font-size:12px;border-radius:4px}
+.ig input:focus{outline:none;border-color:#58a6ff}
+.gbtn{background:#1f6feb;border:none;color:#fff;padding:8px 14px;cursor:pointer;font-family:monospace;font-size:12px;border-radius:4px;width:100%;margin-bottom:8px}
+.gbtn:hover{background:#388bfd}
+.gbtn.sec{background:#21262d;border:1px solid #30363d;color:#8b949e}
+.gbtn.sec:hover{border-color:#58a6ff;color:#58a6ff;background:#21262d}
+.warn{background:#2d1f00;border:1px solid #d29922;border-radius:4px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:#d29922;line-height:1.7}
+.warn strong{color:#f0a500;display:block;margin-bottom:4px}
+.warn code{background:#0d1117;padding:1px 5px;border-radius:3px}
+.psec{background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:12px;margin-bottom:10px}
+.psec h4{color:#d29922;font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.psec p{color:#8b949e;font-size:11px;line-height:1.7}
+.psec p span{color:#3fb950}
+.logrow{padding:7px 0;border-bottom:1px solid #21262d;display:grid;grid-template-columns:130px 110px 140px 60px 1fr;gap:6px;font-size:10px}
+.logrow:last-child{border-bottom:none}
+.lts{color:#6e7681}.ltool{color:#d2a8ff}.lact{color:#79c0ff}
+.lok{color:#3fb950;font-weight:bold}.lno{color:#f85149;font-weight:bold}
+.lreason{color:#8b949e;word-break:break-word}
+.narr{background:#0d1117;border:1px solid #21262d;border-radius:4px;padding:10px 12px;margin-bottom:10px;color:#8b949e;font-size:11px;line-height:1.6}
+.narr strong{color:#58a6ff}.narr em{color:#d29922}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Agent Governance &mdash; Interceptor + State Store Pattern</h1><p>Enforcement is deterministic infrastructure, not probabilistic LLM reasoning.</p></div>
+  <div style="text-align:right"><span style="color:#8b949e;font-size:10px">localhost:8000 &nbsp;<a href="/docs" style="color:#58a6ff">API Docs</a></span></div>
+</header>
+<div class="layout">
+
+<!-- LEFT -->
+<div class="panel left">
+  <div class="tabs">
+    <div class="tab active" onclick="stab('scenarios',this)">Scenarios</div>
+    <div class="tab" onclick="stab('manual',this)">Manual</div>
+    <div class="tab" onclick="stab('prod',this)">Production</div>
+  </div>
+
+  <div class="tc active" id="tab-scenarios">
+    <div class="ptitle">Click a scenario to run step by step</div>
+    <button class="sbtn" onclick="run(1)">Scenario 1 &mdash; Identity Impersonation (Eve / Sasha)<small>Proves FR-3: identity continuity at execution boundary</small></button>
+    <button class="sbtn" onclick="run(2)">Scenario 2 &mdash; Data Taint Propagation (Alice)<small>Proves FR-4, FR-5: cross-tool constraint enforcement</small></button>
+    <button class="sbtn" onclick="run(3)">Scenario 3 &mdash; Concurrent Budget Race (Bob)<small>Proves FR-8, NFR-3: linearizable read-modify-write</small></button>
+    <button class="sbtn" onclick="run(4)">Scenario 4 &mdash; Session Expiry (Carol)<small>Proves FR-9: session lifetime enforcement</small></button>
+    <button class="sbtn" onclick="run(5)">Scenario 5 &mdash; Re-authentication Gate (Dave)<small>Proves FR-10, NFR-5: enforcement independent of agent logic</small></button>
+    <hr>
+    <button class="sbtn" onclick="loadAllLogs()">View Full Audit Log &mdash; All Sessions</button>
+  </div>
+
+  <div class="tc" id="tab-manual">
+    <div class="warn">
+      <strong>Important when setting constraints via API Docs:</strong>
+      Always use numbers, not strings.<br>
+      <code>"value": 500</code> &nbsp;correct<br>
+      <code>"value": "500"</code> &nbsp;wrong &mdash; stored as string, math comparison fails<br>
+      Same for booleans: <code>true</code> not <code>"true"</code>
+    </div>
+    <div class="ptitle">Fire a raw interceptor request</div>
+    <div class="ig"><label>Session ID</label><input id="ms" placeholder="paste session_id or create one below"></div>
+    <div class="ig"><label>Claimed Principal</label><input id="mp" placeholder="name@company.com"></div>
+    <div class="ig"><label>Tool</label><input id="mt" placeholder="database / slack_api / budget_spend / sensitive_data"></div>
+    <div class="ig"><label>Action</label><input id="ma" placeholder="query_records / post_message / process_payment"></div>
+    <div class="ig"><label>Metadata JSON</label><input id="mm" placeholder='{"amount": 100.0} or {"credential": "token"} or {}'></div>
+    <button class="gbtn" onclick="manualValidate()">Send to Interceptor</button>
+    <button class="gbtn sec" onclick="viewSessionLog()">View This Session Log</button>
+    <hr>
+    <div class="ptitle">Create Session</div>
+    <div class="ig"><label>Principal ID</label><input id="cp" placeholder="name@company.com"></div>
+    <div class="ig"><label>Duration (seconds)</label><input id="cd" value="3600"></div>
+    <button class="gbtn" onclick="createSession()">Create Session</button>
+  </div>
+
+  <div class="tc" id="tab-prod">
+    <div class="ptitle">Prototype vs Production Trust Boundary</div>
+    <div class="psec"><h4>Prototype Trust Model</h4><p>Interceptor accepts direct function calls.<br>Session tokens are plain UUIDs. No request signing.<br>Tools simulated in-process. No network isolation.</p></div>
+    <div class="psec"><h4>Production Trust Model</h4><p><span>Every interceptor call carries a signed capability token with a nonce.</span><br>Single-use nonce. TTL is seconds. Replay fails immediately.<br><br><span>Agent has zero credentials for any tool directly.</span><br>Tools accept only interceptor-signed requests.<br>VPC + mTLS + service mesh enforce network isolation.</p></div>
+    <div class="psec"><h4>State Store</h4><p>Prototype: SQLite single node. Serializable on one machine.<br><br><span>Production: Cloud Spanner or CockroachDB.</span><br>Linearizable reads + serializable transactions across nodes.<br>Eventual consistency breaks FR-8 deterministically.</p></div>
+    <div class="psec"><h4>What This Does Not Solve</h4><p>Physical coercion. OS-level compromise.<br>Cryptographic token forgery. Insider threat with DB admin access.<br><br>These are outside any application-layer system scope.</p></div>
+  </div>
+</div>
+
+<!-- RIGHT -->
+<div class="panel" id="right">
+  <div class="ptitle" id="rtitle">Results &mdash; click any card to expand details</div>
+  <div id="results"><div class="empty">Select a scenario or fire a manual request.</div></div>
+</div>
+</div>
+
+<script>
+// ---- tab switch ----
+function stab(name,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tc').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  el.classList.add('active');
+}
+
+// ---- card builder ----
+// detail = { session, request, response, stateChange }
+function card(label, ok, reason, note, info, detail){
+  const r=document.getElementById('results');
+  if(r.querySelector('.empty'))r.innerHTML='';
+  const cls=info?'info':ok?'ok':'no';
+  const sym=info?'~':ok?'+':'x';
+  const status=info?'INFO':ok?'ALLOWED':'BLOCKED';
+
+  // build expandable body html
+  let bodyHTML='';
+  if(detail){
+    if(detail.session){
+      const s=detail.session;
+      bodyHTML+=`<div class="detail-block">
+        <div class="detail-title">Session Record</div>
+        <div class="detail-row"><span class="dk">session_id</span><span class="dv b">${s.session_id}</span></div>
+        <div class="detail-row"><span class="dk">principal_id</span><span class="dv">${s.principal_id}</span></div>
+        <div class="detail-row"><span class="dk">expires_in</span><span class="dv">${s.expires_in_seconds} seconds</span></div>
+        <div class="detail-row"><span class="dk">active</span><span class="dv g">true</span></div>
+      </div>`;
+    }
+    if(detail.request){
+      const q=detail.request;
+      bodyHTML+=`<div class="detail-block">
+        <div class="detail-title">Request Sent</div>
+        <div class="detail-row"><span class="dk">session_id</span><span class="dv b">${q.session_id.slice(0,8)}...</span></div>
+        <div class="detail-row"><span class="dk">claimed_principal</span><span class="dv">${q.claimed_principal}</span></div>
+        <div class="detail-row"><span class="dk">tool</span><span class="dv y">${q.tool}</span></div>
+        <div class="detail-row"><span class="dk">action</span><span class="dv b">${q.action}</span></div>
+        <div class="detail-row"><span class="dk">metadata</span><span class="dv">${JSON.stringify(q.metadata||{})}</span></div>
+      </div>`;
+    }
+    if(detail.response){
+      const rs=detail.response;
+      bodyHTML+=`<div class="detail-block">
+        <div class="detail-title">Interceptor Response</div>
+        <div class="detail-row"><span class="dk">allowed</span><span class="dv ${rs.allowed?'g':'r'}">${rs.allowed}</span></div>
+        <div class="detail-row"><span class="dk">reason</span><span class="dv">${rs.reason}</span></div>
+        <div class="detail-row"><span class="dk">timestamp</span><span class="dv">${(rs.timestamp||'').slice(0,19)}</span></div>
+      </div>`;
+    }
+    if(detail.stateChange){
+      bodyHTML+=`<div class="detail-block">
+        <div class="detail-title">State Store Write</div>
+        <div class="detail-row"><span class="dk">written</span><span class="dv g">${detail.stateChange}</span></div>
+      </div>`;
+    }
+  }
+
+  const hasBody = bodyHTML.length > 0;
+  const d=document.createElement('div');
+  d.className='card '+cls;
+  d.innerHTML=`
+    <div class="card-top" onclick="toggleCard(this.parentElement)">
+      <div class="card-top-left">
+        <div class="clabel ${cls}">[${sym}] ${label}</div>
+        <div class="creason">${status}: ${reason}</div>
+        ${note?`<div class="cnote">${note}</div>`:''}
+      </div>
+      ${hasBody?'<span class="chevron">&#9658;</span>':''}
+    </div>
+    ${hasBody?`<div class="card-body">${bodyHTML}</div>`:''}
+  `;
+  r.appendChild(d);
+  r.scrollTop=r.scrollHeight;
+}
+
+function toggleCard(el){
+  if(!el.querySelector('.card-body'))return;
+  el.classList.toggle('open');
+}
+
+function narr(html){
+  const r=document.getElementById('results');
+  if(r.querySelector('.empty'))r.innerHTML='';
+  const d=document.createElement('div');d.className='narr';d.innerHTML=html;r.appendChild(d);
+}
+
+// ---- API helpers ----
+async function api(method,url,body){
+  const o={method,headers:{'Content-Type':'application/json'}};
+  if(body)o.body=JSON.stringify(body);
+  return (await fetch(url,o)).json();
+}
+async function mkSession(p,dur){return api('POST','/session/create',{principal_id:p,duration_seconds:dur||3600});}
+async function setC(sid,k,v){return api('POST','/session/'+sid+'/constraint',{key:k,value:v});}
+async function val(sid,p,t,a,m){return api('POST','/validate',{session_id:sid,claimed_principal:p,tool:t,action:a,metadata:m||{}});}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// ---- run scenario ----
+async function run(n){
+  document.getElementById('results').innerHTML='';
+  document.getElementById('rtitle').textContent='Scenario '+n+' \u2014 Results (click any card to expand)';
+  [s1,s2,s3,s4,s5][n-1]();
+}
+
+// ---- Scenario 1 ----
+async function s1(){
+  narr('<strong>Eve</strong> authenticates. Leaves desk without logging out.<br><strong>Sasha</strong> sits down, tells the agent she is Eve. Agent forwards the claim.<br>Interceptor reads session record directly. Catches the mismatch.<br><em>Proves FR-3: identity continuity at every execution boundary.</em>');
+  const sd=await mkSession('eve@company.com',3600);const sid=sd.session_id;
+  card('Session created \u2014 bound to eve@company.com',true,'session: '+sid.slice(0,8)+'...',null,true,{session:sd});
+  let d,rq;
+  rq={session_id:sid,claimed_principal:'eve@company.com',tool:'database',action:'query_records',metadata:{}};
+  d=await val(sid,'eve@company.com','database','query_records');
+  card('TC-01  Eve queries records (legitimate)',d.allowed,d.reason,'Baseline correctness.',false,{request:rq,response:d});await sleep(400);
+  rq={session_id:sid,claimed_principal:'sasha@company.com',tool:'database',action:'query_records',metadata:{}};
+  d=await val(sid,'sasha@company.com','database','query_records');
+  card('TC-02  Sasha claims to be Eve (impersonation)',d.allowed,d.reason,'Database was never contacted. Tool never reached.',false,{request:rq,response:d});await sleep(400);
+  d=await val(sid,'sasha@company.com','database','query_records');
+  card('TC-03  Sasha retries (retry tolerance)',d.allowed,d.reason,'Retrying a violation never produces a different result. NFR-4 satisfied.',false,{request:rq,response:d});await sleep(400);
+  rq={session_id:'fake-session-xyz',claimed_principal:'eve@company.com',tool:'database',action:'query_records',metadata:{}};
+  d=await val('fake-session-xyz','eve@company.com','database','query_records');
+  card('TC-19  Fabricated session_id (edge case)',d.allowed,d.reason,'Check 1 fires before identity check runs.',false,{request:rq,response:d});
+}
+
+// ---- Scenario 2 ----
+async function s2(){
+  narr('<strong>Alice</strong> accesses PII. Arms the session-level taint.<br>Repeat PII access requires reauth. Slack blocked as exfiltration path.<br><em>Slack has no idea PII was accessed. Only the state store knows.</em><br><em>Proves FR-4, FR-5: cross-tool constraint enforcement.</em>');
+  const sd=await mkSession('alice@company.com',3600);const sid=sd.session_id;
+  card('Session created \u2014 bound to alice@company.com',true,'session: '+sid.slice(0,8)+'...',null,true,{session:sd});
+  let d,rq;
+  rq={session_id:sid,claimed_principal:'alice@company.com',tool:'slack_api',action:'post_message',metadata:{}};
+  d=await val(sid,'alice@company.com','slack_api','post_message');
+  card('TC-20  Slack BEFORE PII (taint not armed)',d.allowed,d.reason,'Slack allowed before taint. No over-blocking.',false,{request:rq,response:d});await sleep(400);
+  rq={session_id:sid,claimed_principal:'alice@company.com',tool:'database',action:'query_pii_table',metadata:{}};
+  d=await val(sid,'alice@company.com','database','query_pii_table');
+  card('TC-04  First PII access (arms taint)',d.allowed,d.reason,null,false,{request:rq,response:d,stateChange:'pii_accessed = true written to state store'});await sleep(400);
+  rq={session_id:sid,claimed_principal:'alice@company.com',tool:'database',action:'query_records',metadata:{}};
+  d=await val(sid,'alice@company.com','database','query_records');
+  card('TC-05  Unrelated query (no over-blocking)',d.allowed,d.reason,'Taint only blocks exfiltration paths.',false,{request:rq,response:d});await sleep(400);
+  rq={session_id:sid,claimed_principal:'alice@company.com',tool:'database',action:'query_pii_table',metadata:{}};
+  d=await val(sid,'alice@company.com','database','query_pii_table');
+  card('TC-06  PII again (taint active, reauth required)',d.allowed,d.reason,null,false,{request:rq,response:d});await sleep(400);
+  rq={session_id:sid,claimed_principal:'alice@company.com',tool:'reauth_check',action:'valid_credentials',metadata:{credential:'token-alice'}};
+  d=await val(sid,'alice@company.com','reauth_check','valid_credentials',{credential:'token-alice'});
+  card('TC-07  Re-authentication',d.allowed,d.reason,null,false,{request:rq,response:d,stateChange:'reauth_verified = true written to state store'});await sleep(400);
+  rq={session_id:sid,claimed_principal:'alice@company.com',tool:'database',action:'query_pii_table',metadata:{}};
+  d=await val(sid,'alice@company.com','database','query_pii_table');
+  card('TC-08  PII again (reauth satisfied)',d.allowed,d.reason,null,false,{request:rq,response:d});await sleep(400);
+  rq={session_id:sid,claimed_principal:'alice@company.com',tool:'slack_api',action:'post_message',metadata:{}};
+  d=await val(sid,'alice@company.com','slack_api','post_message');
+  card('TC-09  Slack AFTER PII (exfiltration blocked)',d.allowed,d.reason,'Slack API was never contacted. Tool never reached.',false,{request:rq,response:d});
+}
+
+// ---- Scenario 3 ----
+async function s3(){
+  narr('<strong>Two agents</strong> attempt simultaneous spends exceeding the budget.<br>Only one passes. Invariant holds under real concurrency.<br><em>Proves FR-8, NFR-3: linearizable read-modify-write.</em>');
+  const sd=await mkSession('bob@company.com',3600);const sid=sd.session_id;
+  await setC(sid,'budget_limit',500.0);
+  card('Session created \u2014 bob@company.com. Budget: $500',true,'session: '+sid.slice(0,8)+'...',null,true,{session:sd,stateChange:'budget_limit = 500.0 written to state store'});
+  let d,rq;
+  rq={session_id:sid,claimed_principal:'bob@company.com',tool:'budget_spend',action:'process_payment',metadata:{amount:100.0}};
+  d=await val(sid,'bob@company.com','budget_spend','process_payment',{amount:100.0});
+  card('TC-10  Bob spends $100 (within limit)',d.allowed,d.reason,null,false,{request:rq,response:d,stateChange:'budget_spent = $100.00'});await sleep(400);
+  rq={session_id:sid,claimed_principal:'bob@company.com',tool:'budget_spend',action:'process_payment',metadata:{amount:450.0}};
+  d=await val(sid,'bob@company.com','budget_spend','process_payment',{amount:450.0});
+  card('TC-11  Bob spends $450 (cumulative $550, exceeds $500)',d.allowed,d.reason,null,false,{request:rq,response:d});await sleep(400);
+  rq={session_id:sid,claimed_principal:'bob@company.com',tool:'budget_spend',action:'process_payment',metadata:{amount:-100.0}};
+  d=await val(sid,'bob@company.com','budget_spend','process_payment',{amount:-100.0});
+  card('TC-21  Negative spend attempt (attack vector)',d.allowed,d.reason,'Budget cannot be reset via negative amounts.',false,{request:rq,response:d});await sleep(400);
+  card('TC-12  Firing two concurrent $300 requests...',true,'race condition test running',null,true);
+  const rsd=await mkSession('bob@company.com',3600);const rsid=rsd.session_id;
+  await setC(rsid,'budget_limit',500.0);
+  const [r1,r2]=await Promise.all([
+    val(rsid,'bob@company.com','budget_spend','process_payment',{amount:300.0}),
+    val(rsid,'bob@company.com','budget_spend','process_payment',{amount:300.0})
+  ]);
+  const rqrace={session_id:rsid,claimed_principal:'bob@company.com',tool:'budget_spend',action:'process_payment',metadata:{amount:300.0}};
+  card('Thread 1: '+(r1.allowed?'ALLOWED':'BLOCKED'),r1.allowed,r1.reason,null,false,{request:rqrace,response:r1});
+  card('Thread 2: '+(r2.allowed?'ALLOWED':'BLOCKED'),r2.allowed,r2.reason,null,false,{request:rqrace,response:r2});
+  const an=[r1,r2].filter(x=>x.allowed).length;
+  if(an===1)card('TC-12  Result: 1 allowed, 1 blocked. Final budget_spent: $300. Invariant preserved.',true,'Linearizable enforcement holds under concurrency.',null,true);
+  else card('TC-12  UNEXPECTED: '+an+' requests allowed.',false,'Race condition not caught.');
+}
+
+// ---- Scenario 4 ----
+async function s4(){
+  narr('<strong>Carol</strong> creates a session expiring in 2 seconds.<br>Any request after expiry is blocked regardless of identity.<br><em>Proves FR-9: session lifetime enforcement.</em>');
+  const sd=await mkSession('carol@company.com',2);const sid=sd.session_id;
+  card('Session created \u2014 carol@company.com. Expires in 2 seconds.',true,'session: '+sid.slice(0,8)+'...',null,true,{session:{...sd,expires_in_seconds:2}});
+  let d,rq;
+  rq={session_id:sid,claimed_principal:'carol@company.com',tool:'database',action:'query_records',metadata:{}};
+  d=await val(sid,'carol@company.com','database','query_records');
+  card('TC-13  Carol queries immediately (session active)',d.allowed,d.reason,null,false,{request:rq,response:d});
+  card('Waiting 3 seconds for session to expire...',true,'session expires at T+2s',null,true);
+  await sleep(3000);
+  d=await val(sid,'carol@company.com','database','query_records');
+  card('TC-14  Carol queries after expiry (session expired)',d.allowed,d.reason,'Identity is irrelevant. Expired session is dead.',false,{request:rq,response:d});
+}
+
+// ---- Scenario 5 ----
+async function s5(){
+  narr('<strong>Dave</strong> tries sensitive access without reauth.<br>Agent passes fake reauth token in metadata. Interceptor ignores it.<br>Reads state store directly. Still blocked.<br><em>Proves FR-10, NFR-5: enforcement independent of agent assertions.</em>');
+  const sd=await mkSession('dave@company.com',3600);const sid=sd.session_id;
+  card('Session created \u2014 dave@company.com.',true,'session: '+sid.slice(0,8)+'...',null,true,{session:sd});
+  let d,rq;
+  rq={session_id:sid,claimed_principal:'dave@company.com',tool:'sensitive_data',action:'access_sensitive',metadata:{}};
+  d=await val(sid,'dave@company.com','sensitive_data','access_sensitive');
+  card('TC-15  Sensitive access without reauth',d.allowed,d.reason,null,false,{request:rq,response:d});await sleep(400);
+  rq={session_id:sid,claimed_principal:'dave@company.com',tool:'sensitive_data',action:'access_sensitive',metadata:{reauth_verified:true,credential:'fake-token'}};
+  d=await val(sid,'dave@company.com','sensitive_data','access_sensitive',{reauth_verified:true,credential:'fake-token'});
+  card('TC-23  Agent passes fake reauth in metadata (agent lies)',d.allowed,d.reason,'Interceptor ignores metadata. Reads state store directly. Still blocked.',false,{request:rq,response:d});await sleep(400);
+  rq={session_id:sid,claimed_principal:'dave@company.com',tool:'reauth_check',action:'valid_credentials',metadata:{credential:'token-dave'}};
+  d=await val(sid,'dave@company.com','reauth_check','valid_credentials',{credential:'token-dave'});
+  card('TC-16  Dave re-authenticates properly',d.allowed,d.reason,null,false,{request:rq,response:d,stateChange:'reauth_verified = true written to state store'});await sleep(400);
+  rq={session_id:sid,claimed_principal:'dave@company.com',tool:'sensitive_data',action:'access_sensitive',metadata:{}};
+  d=await val(sid,'dave@company.com','sensitive_data','access_sensitive');
+  card('TC-17  Sensitive access after reauth',d.allowed,d.reason,null,false,{request:rq,response:d});await sleep(400);
+  rq={session_id:sid,claimed_principal:'dave@company.com',tool:'reauth_check',action:'valid_credentials',metadata:{credential:'token-dave'}};
+  d=await val(sid,'dave@company.com','reauth_check','valid_credentials',{credential:'token-dave'});
+  card('TC-24  Replay of valid_credentials (replay tolerance)',d.allowed,d.reason,'Replay allowed. Does not expand access. Session expiry bounds the window. Production: signed tokens with nonces.',false,{request:rq,response:d});
+}
+
+// ---- Full audit log ----
+async function loadAllLogs(){
+  document.getElementById('results').innerHTML='';
+  document.getElementById('rtitle').textContent='Full Audit Log \u2014 All Sessions';
+  const data=await api('GET','/sessions');
+  if(!data.sessions||!data.sessions.length){document.getElementById('results').innerHTML='<div class="empty">No sessions. Run a scenario first.</div>';return;}
+  for(const s of data.sessions){
+    const log=await api('GET','/session/'+s.session_id+'/log');
+    const h=document.createElement('div');h.className='card info';
+    h.innerHTML='<div class="card-top"><div class="card-top-left"><div class="clabel info">'+s.principal_id+' \u2014 '+s.session_id.slice(0,8)+'...</div><div class="creason">'+s.created_at.slice(0,19)+' | '+log.total+' decisions</div></div></div>';
+    document.getElementById('results').appendChild(h);
+    for(const e of log.log){
+      const row=document.createElement('div');row.className='logrow';
+      row.innerHTML='<span class="lts">'+e.timestamp.slice(0,19)+'</span><span class="ltool">'+e.tool+'</span><span class="lact">'+e.action+'</span><span class="'+(e.result==='ALLOWED'?'lok':'lno')+'">'+e.result+'</span><span class="lreason">'+e.reason+'</span>';
+      document.getElementById('results').appendChild(row);
+    }
+  }
+}
+
+// ---- View log for specific session (Manual tab) ----
+async function viewSessionLog(){
+  const sid=document.getElementById('ms').value.trim();
+  if(!sid){alert('Enter a Session ID first');return;}
+  document.getElementById('rtitle').textContent='Session Log \u2014 '+sid.slice(0,8)+'...';
+  document.getElementById('results').innerHTML='';
+  const log=await api('GET','/session/'+sid+'/log');
+  if(log.detail){document.getElementById('results').innerHTML='<div class="empty">Session not found.</div>';return;}
+  const h=document.createElement('div');h.className='card info';
+  h.innerHTML='<div class="card-top"><div class="card-top-left"><div class="clabel info">'+(log.principal_id||'unknown')+' \u2014 '+sid.slice(0,8)+'...</div><div class="creason">'+log.total+' decisions recorded</div></div></div>';
+  document.getElementById('results').appendChild(h);
+  if(!log.log||!log.log.length){const e=document.createElement('div');e.className='empty';e.textContent='No decisions yet for this session.';document.getElementById('results').appendChild(e);return;}
+  for(const e of log.log){
+    const row=document.createElement('div');row.className='logrow';
+    row.innerHTML='<span class="lts">'+e.timestamp.slice(0,19)+'</span><span class="ltool">'+e.tool+'</span><span class="lact">'+e.action+'</span><span class="'+(e.result==='ALLOWED'?'lok':'lno')+'">'+e.result+'</span><span class="lreason">'+e.reason+'</span>';
+    document.getElementById('results').appendChild(row);
+  }
+}
+
+// ---- Manual validate ----
+async function manualValidate(){
+  const sid=document.getElementById('ms').value.trim();
+  const p=document.getElementById('mp').value.trim();
+  const t=document.getElementById('mt').value.trim();
+  const a=document.getElementById('ma').value.trim();
+  const ms=document.getElementById('mm').value.trim();
+  let meta={};
+  if(ms){try{meta=JSON.parse(ms);}catch(e){alert('Invalid JSON in Metadata field');return;}}
+  if(!sid||!p||!t||!a){alert('Session ID, Principal, Tool and Action are all required');return;}
+  document.getElementById('rtitle').textContent='Manual Request Result';
+  document.getElementById('results').innerHTML='';
+  const d=await val(sid,p,t,a,meta);
+  const rq={session_id:sid,claimed_principal:p,tool:t,action:a,metadata:meta};
+  card('Manual: '+t+' / '+a,d.allowed,d.reason,'Principal claimed: '+p,false,{request:rq,response:d});
+}
+
+// ---- Create session ----
+async function createSession(){
+  const p=document.getElementById('cp').value.trim();
+  const dur=parseInt(document.getElementById('cd').value)||3600;
+  if(!p){alert('Principal ID required');return;}
+  const data=await api('POST','/session/create',{principal_id:p,duration_seconds:dur});
+  document.getElementById('rtitle').textContent='Session Created';
+  document.getElementById('results').innerHTML='';
+  card('Session created for '+p,true,'session_id: '+data.session_id,'session_id auto-filled in Session ID field above.',true,{session:data});
+  document.getElementById('ms').value=data.session_id;
+  document.getElementById('mp').value=p;
+}
+</script>
+</body>
+</html>
