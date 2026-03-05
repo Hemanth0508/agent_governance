@@ -33,7 +33,7 @@ to these tables. The agent has no write access to any of them.
 ┌────────▼────────────────────────────────────────────┐
 │                    constraints                      │
 ├─────────────────┬───────────────────────────────────┤
-│ id              │ INTEGER PRIMARY KEY AUTOINCREMENT │
+│ id              │ INTEGER PRIMARY KEY AUTOINCREMENT  │
 │ session_id      │ TEXT NOT NULL (FK → sessions)     │
 │ constraint_key  │ TEXT NOT NULL                     │
 │ constraint_value│ TEXT NOT NULL (JSON encoded)      │
@@ -45,11 +45,11 @@ to these tables. The agent has no write access to any of them.
 ┌────────▼────────────────────────────────────────────┐
 │                   execution_log                     │
 ├─────────────────┬───────────────────────────────────┤
-│ id              │ INTEGER PRIMARY KEY AUTOINCREMENT │
+│ id              │ INTEGER PRIMARY KEY AUTOINCREMENT  │
 │ session_id      │ TEXT NOT NULL (FK → sessions)     │
 │ tool            │ TEXT NOT NULL                     │
 │ action          │ TEXT NOT NULL                     │
-│ result          │ TEXT NOT NULL (ALLOWED / BLOCKED) │
+│ result          │ TEXT NOT NULL (ALLOWED / BLOCKED)  │
 │ reason          │ TEXT NOT NULL                     │
 │ timestamp       │ TEXT NOT NULL                     │
 └─────────────────┴───────────────────────────────────┘
@@ -94,10 +94,6 @@ ISO 8601 timestamp of when the session expires. The Interceptor
 compares the current time against this field on every request.
 If current time is past expires_at, the session is rejected
 regardless of identity match. This enforces FR-9.
-
-Default duration is 3600 seconds. For the session expiry 
-demonstration scenario, sessions are created with a 2 second 
-duration so expiry can be observed immediately.
 
 **active**
 1 = session is active. 0 = session has been explicitly revoked.
@@ -185,11 +181,6 @@ WHERE session_id = ?
 ORDER BY set_at DESC
 LIMIT 1;
 ```
-
-If no rows exist for a given session_id and constraint_key, 
-the default value is returned. For budget_spent the default 
-is 0.0. For pii_accessed the default is false. 
-For reauth_verified the default is false.
 
 ### Mid-Session Constraint Changes
 

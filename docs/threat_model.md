@@ -54,6 +54,24 @@ immutable principal bound at session creation and compares.
 
 ---
 
+### Session Scoping as Taint Isolation
+
+Each session is a completely isolated taint context. Constraints
+are scoped to session_id. A taint flag written in Eve's session
+cannot be read by Sasha's session and vice versa.
+
+This has a direct security consequence: if an attacker compromises
+one session and introduces a taint, the blast radius is bounded to
+that single session. Other concurrent sessions operated by other
+principals are unaffected.
+
+In the Eve/Sasha scenario: even if Sasha somehow obtained Eve's
+session_id, Sasha's own session (if she has one) would have its
+own independent constraint state. There is no cross-session
+constraint inheritance.
+
+---
+
 ## Threat 2 - Compromised or Manipulated Agent
 
 **Attacker profile:**

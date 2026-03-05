@@ -13,22 +13,22 @@ prototype. Each test case states the expected output and the
 architectural invariant it proves. A test that passes but cannot
 be linked to an architectural claim proves nothing useful.
 
-The prototype must pass all 15 test cases to be considered complete.
+The prototype must pass all 24 test cases to be considered complete.
 
 ---
 
 ## Sensitive Actions List
 
-Before the test cases, one definition must be established. The
-following actions require reauth_verified = true before the
+The following actions require reauth_verified = true before the
 interceptor permits them. This list is defined at the system level.
 The agent cannot modify it.
 
-  query_pii_table
   access_sensitive
 
-Any other action is not subject to the re-authentication gate.
-Check 4 is skipped for all other actions.
+Note: query_pii_table is NOT in the sensitive actions list. First PII
+access is allowed without reauth. The PII taint model governs subsequent
+behavior -- repeat PII access requires reauth only after the taint is
+armed. See PII Taint Rules in api_spec.md for the full rule set.
 
 ---
 
@@ -112,8 +112,8 @@ Cross-step causality is enforced by the state store, not by the agent.
   Reason:   Session valid. Identity matches. No prior constraints
             violated. Action is in sensitive actions list but
             reauth is not required for database PII queries in
-            this scenario -- reauth gate applies to access_sensitive
-            tool only.
+            this scenario. The taint flag is written atomically.
+            Repeat access will be gated by Check 4.
 
   Architectural invariant proved:
   Actions that trigger state transitions are allowed and the
@@ -152,6 +152,41 @@ Cross-step causality is enforced by the state store, not by the agent.
 
 ---
 
+
+---
+
+**TC-07 - Re-authentication is allowed and state is recorded**
+
+  Setup:    Alice session. pii_accessed = true. TC-06 just blocked.
+  Action:   Alice sends reauth_check valid_credentials with credential = "token-alice"
+  Expected: ALLOWED
+  Reason:   All checks pass. Trigger fires. reauth_verified = true written to state store.
+  Invariant: FR-5 -- constraint written by reauth_check governs future database access.
+
+---
+
+**TC-08 - PII access after reauth is allowed**
+
+  Setup:    Alice session. pii_accessed = true. reauth_verified = true after TC-07.
+  Action:   Alice sends database query_pii_table request
+  Expected: ALLOWED
+  Reason:   Check 4 runs. pii_accessed = true AND action = query_pii_table triggers
+            requires_reauth = true. reauth_verified = true. Check 4 passes.
+
+---
+
+**TC-09 - Slack blocked after PII access (exfiltration path)**
+
+  Setup:    Alice session. pii_accessed = true.
+  Action:   Alice sends slack_api post_message request
+  Expected: BLOCKED - pii_accessed constraint: slack_api blocked as potential
+            exfiltration path after PII access this session
+  Reason:   Check 5 runs. pii_accessed = true AND action = post_message is in
+            PII_TAINT_BLOCKED. Blocked entirely. No reauth bypass.
+  Invariant: FR-5 cross-tool enforcement. Slack never contacted.
+  Note:     Compare with TC-20. Same request. Same session. Blocked here because
+            PII was accessed in between. Slack has no idea PII was accessed.
+
 ## Scenario 3 - Concurrent Budget Race
 
 **Principal:** Bob (bob@company.com)
@@ -164,7 +199,7 @@ concurrency. The invariant is preserved regardless of timing.
 
 ---
 
-**TC-07 - Budget spend within limit is allowed**
+**TC-10 - Budget spend within limit is allowed**
 
   Action:   Bob sends budget_spend process_payment with amount $200
   Expected: ALLOWED
@@ -177,10 +212,10 @@ concurrency. The invariant is preserved regardless of timing.
 
 ---
 
-**TC-08 - Cumulative budget exceeded is blocked**
+**TC-11 - Cumulative budget exceeded is blocked**
 
   Action:   Bob sends budget_spend process_payment with amount $350
-            after TC-07 (total would be $550)
+            after TC-10 (total would be $550)
   Expected: BLOCKED - budget exceeded: limit $500.00, spent $200.00,
             requested $350.00
   Reason:   $200 + $350 = $550. Exceeds $500 limit.
@@ -192,7 +227,7 @@ concurrency. The invariant is preserved regardless of timing.
 
 ---
 
-**TC-09 - Concurrent budget race allows only one request**
+**TC-12 - Concurrent budget race allows only one request**
 
   Setup:    Fresh session. Budget $500. Spent $0.
   Action:   Two threads simultaneously send budget_spend
@@ -225,7 +260,7 @@ layer. FR-9 is satisfied.
 
 ---
 
-**TC-10 - Immediate request on fresh session is allowed**
+**TC-13 - Immediate request on fresh session is allowed**
 
   Action:   Carol sends database query_records immediately after
             session creation
@@ -238,7 +273,7 @@ layer. FR-9 is satisfied.
 
 ---
 
-**TC-11 - Request on expired session is blocked**
+**TC-14 - Request on expired session is blocked**
 
   Action:   Carol sends database query_records 3 seconds after
             session creation (session expired after 2 seconds)
@@ -265,7 +300,7 @@ FR-10 is satisfied.
 
 ---
 
-**TC-12 - Sensitive access without re-authentication is blocked**
+**TC-15 - Sensitive access without re-authentication is blocked**
 
   Action:   Dave sends sensitive_data access_sensitive request
             without prior re-authentication
@@ -281,7 +316,7 @@ FR-10 is satisfied.
 
 ---
 
-**TC-13 - Re-authentication step is allowed and state is recorded**
+**TC-16 - Re-authentication step is allowed and state is recorded**
 
   Action:   Dave sends reauth_check valid_credentials with
             credential = "reauth-token-dave"
@@ -297,10 +332,10 @@ FR-10 is satisfied.
 
 ---
 
-**TC-14 - Sensitive access after re-authentication is allowed**
+**TC-17 - Sensitive access after re-authentication is allowed**
 
   Action:   Dave sends sensitive_data access_sensitive request
-            after TC-13
+            after TC-16
   Expected: ALLOWED
   Reason:   Check 4 runs. access_sensitive is in sensitive actions
             list. reauth_verified = true. Check 4 passes.
@@ -313,11 +348,11 @@ FR-10 is satisfied.
 
 ---
 
-## TC-15 - Audit Log Completeness
+## TC-18 - Audit Log Completeness
 
   Action:   After all scenarios have run, retrieve the execution
             log for each session using get_session_log()
-  Expected: Every decision from TC-01 through TC-14 appears in
+  Expected: Every decision from TC-01 through TC-24 appears in
             the log with correct result, reason, tool, action,
             and timestamp. No gaps. No missing entries.
             ALLOWED and BLOCKED decisions both present.
@@ -338,18 +373,27 @@ FR-10 is satisfied.
 | 01 | 1 | Legitimate request | ALLOWED | Baseline correctness |
 | 02 | 1 | Identity mismatch | BLOCKED | FR-3 identity continuity |
 | 03 | 1 | Retry of blocked | BLOCKED | NFR-4 retry tolerance |
-| 04 | 2 | PII access | ALLOWED + state written | FR-4 dynamic mutation |
+| 04 | 2 | PII first access | ALLOWED + taint armed | FR-4 dynamic mutation |
 | 05 | 2 | Unrelated after PII | ALLOWED | No over-blocking |
-| 06 | 2 | Slack after PII | BLOCKED | FR-5 cross-tool enforcement |
-| 07 | 3 | Spend within limit | ALLOWED + state written | Budget tracking |
-| 08 | 3 | Cumulative exceeded | BLOCKED | FR-8 cumulative enforcement |
-| 09 | 3 | Concurrent race | One ALLOWED one BLOCKED | NFR-3 linearizability |
-| 10 | 4 | Fresh session request | ALLOWED | No over-blocking |
-| 11 | 4 | Expired session | BLOCKED | FR-9 session expiry |
-| 12 | 5 | Sensitive without reauth | BLOCKED | FR-10 reauth gate |
-| 13 | 5 | Re-authentication step | ALLOWED + state written | FR-4 + FR-10 |
-| 14 | 5 | Sensitive after reauth | ALLOWED | FR-10 unlocked |
-| 15 | All | Audit log completeness | All decisions recorded | FR-7 audit trail |
+| 06 | 2 | PII repeat (taint active) | BLOCKED | FR-5 reauth gate on PII |
+| 07 | 2 | Re-authenticate | ALLOWED + state written | FR-4 + FR-10 |
+| 08 | 2 | PII after reauth | ALLOWED | Reauth satisfies gate |
+| 09 | 2 | Slack after PII | BLOCKED | FR-5 cross-tool exfiltration block |
+| 10 | 3 | Spend within limit | ALLOWED + state written | Budget tracking |
+| 11 | 3 | Cumulative exceeded | BLOCKED | FR-8 cumulative enforcement |
+| 12 | 3 | Concurrent race | One ALLOWED one BLOCKED | NFR-3 linearizability |
+| 13 | 4 | Fresh session request | ALLOWED | No over-blocking |
+| 14 | 4 | Expired session | BLOCKED | FR-9 session expiry |
+| 15 | 5 | Sensitive without reauth | BLOCKED | FR-10 reauth gate |
+| 16 | 5 | Re-authentication step | ALLOWED + state written | FR-10 |
+| 17 | 5 | Sensitive after reauth | ALLOWED | FR-10 unlocked |
+| 18 | All | Audit log completeness | All decisions recorded | FR-7 audit trail |
+| 19 | 1 | Fabricated session_id | BLOCKED | Check 1 session existence |
+| 20 | 2 | Slack before PII | ALLOWED | No over-blocking |
+| 21 | 3 | Negative spend | BLOCKED | Attack vector closed |
+| 22 | 4 | Manually revoked session | BLOCKED | FR-9 revocation |
+| 23 | 5 | Agent lies in metadata | BLOCKED | NFR-5 agent untrusted |
+| 24 | 5 | Replay of valid_credentials | ALLOWED | Replay tolerance noted |
 
 ---
 
@@ -359,7 +403,7 @@ All test cases execute in a single run of agent_simulator.py.
 
   python3 prototype/agent_simulator.py
 
-Expected output: all 15 test cases produce the stated result.
+Expected output: all 24 test cases produce the stated result.
 The audit log for each session is printed at the end of the run.
 No external dependencies. No network required. SQLite only.
 
@@ -380,15 +424,98 @@ TC-06 fails: Cross-step constraint enforcement is not working.
 The state written in step 1 is not being read in step 3. FR-5
 is not met.
 
-TC-09 fails with both ALLOWED: The concurrent race condition is
+TC-12 fails with both ALLOWED: The concurrent race condition is
 not being caught. Linearizable read-modify-write is not working.
 NFR-3 is not met. This is the most serious failure mode.
 
-TC-11 fails: Session expiry is not being enforced. An expired
+TC-14 fails: Session expiry is not being enforced. An expired
 session is being treated as active. FR-9 is not met.
 
-TC-12 fails: The re-authentication gate is not working. Sensitive
+TC-15 fails: The re-authentication gate is not working. Sensitive
 actions are accessible without re-authentication. FR-10 is not met.
 
-TC-15 fails: The audit log is incomplete. Enforcement decisions
+TC-18 fails: The audit log is incomplete. Enforcement decisions
 are not being recorded. FR-7 is not met.
+
+
+---
+
+## Edge Cases -- TC-19 through TC-24
+
+Added after prototype run to cover gaps identified during review.
+
+---
+
+### TC-19 -- Fabricated Session ID
+
+  Scenario: Scenario 1 extension
+  Action:   Request with completely fake session_id not in state store
+  Expected: BLOCKED - no active session found
+  Proves:   Check 1 fires before identity or constraint checks. FR-1.
+
+---
+
+### TC-20 -- Slack Allowed Before PII Taint
+
+  Scenario: Scenario 2 extension
+  Action:   Alice posts to Slack BEFORE accessing PII
+  Expected: ALLOWED - pii_accessed is false, taint not armed
+  Proves:   Taint model does not over-block. FR-5 precision.
+
+---
+
+### TC-21 -- Negative Spend Amount
+
+  Scenario: Scenario 3 extension
+  Action:   Bob attempts process_payment with amount = -100.0
+  Expected: BLOCKED - invalid spend amount: must be greater than zero
+  Proves:   Budget cannot be artificially reset via negative spend.
+
+---
+
+### TC-22 -- Manual Session Revocation
+
+  Scenario: Scenario 4 extension
+  Action:   Carol uses a session with active = 0 set by admin
+  Expected: BLOCKED - session has been revoked
+  Proves:   Revocation is immediate. Does not wait for expiry. FR-9.
+
+---
+
+### TC-23 -- Agent Lies About Re-authentication
+
+  Scenario: Scenario 5 extension
+  Action:   Dave sends access_sensitive with {reauth_verified: true}
+            in metadata but reauth_verified is false in state store
+  Expected: BLOCKED - re-authentication required for sensitive action
+  Proves:   Interceptor ignores agent metadata. Reads state store
+            directly. Agent assertions are irrelevant. NFR-5.
+
+---
+
+### TC-24 -- Replay of Valid Credentials
+
+  Scenario: Scenario 5 extension
+  Action:   Dave replays valid_credentials after reauth already set
+  Expected: ALLOWED - idempotent, does not expand permissions
+  Note:     Replay window is bounded by session expiry. Production
+            fix is signed tokens with single-use nonces.
+  Proves:   Replay of an allowed action does not expand session
+            permissions beyond what current state permits.
+
+---
+
+## Updated Failure Mode Reference
+
+| TC | Failure meaning |
+|---|---|
+| TC-02 | Identity enforcement broken |
+| TC-06 | Repeat PII reauth gate broken |
+| TC-09 | Exfiltration path not blocked after taint |
+| TC-12 | Race condition not caught -- linearizability broken (most critical) |
+| TC-14 | Session expiry not enforced |
+| TC-18 | Silent paths exist in audit trail |
+| TC-19 | Check 1 not firing on fabricated session |
+| TC-21 | Negative spend attack vector open |
+| TC-22 | Manual revocation not enforced |
+| TC-23 | Agent metadata can bypass enforcement |

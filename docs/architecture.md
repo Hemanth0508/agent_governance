@@ -23,7 +23,7 @@ is fully untrusted.
 ┌─────────────────────────────────────────────────────────────────┐
 │                         OUTSIDE SYSTEM                          │
 │                                                                 │
-│   User  ──────►  Authentication Provider                        │
+│   User  ──────►  Authentication Provider                       │
 │                        │                                        │
 │                        │  verified principal_id                 │
 │                        ▼                                        │
@@ -33,10 +33,10 @@ is fully untrusted.
 ┌─────────────────────────────────────────────────────────────────┐
 │                        OUR SYSTEM                               │
 │                                                                 │
-│   ┌─────────────────┐                                           │
-│   │ Session Manager │── creates session ──────────────────┐     │
-│   └─────────────────┘                                      │    │
-│                                                            ▼    │
+│   ┌─────────────────┐                                          │
+│   │ Session Manager │── creates session ──────────────────┐   │
+│   └─────────────────┘                                      │   │
+│                                                             ▼   │
 │   ┌─────────────────┐    reads constraints (planning)  ┌──────────────┐
 │   │                 │ ──────────────────────────────►  │              │
 │   │  Agent (LLM)    │                                  │  State Store │
@@ -160,9 +160,9 @@ The Agent may NOT:
 - Influence Interceptor decisions
 - Assert that constraints have been satisfied
 
-The Agent is treated as fully untrusted at all times. It may hallucinate.
-It may be manipulated through prompt injection. It may be outdated.
-It may have been given contradictory instructions.
+The Agent is treated as fully untrusted at all times. It may
+hallucinate. It may be manipulated through prompt injection. It may
+be outdated. It may have been given contradictory instructions.
 None of this affects enforcement — because the Agent has no role
 in enforcement.
 
@@ -293,7 +293,7 @@ Step 3 — Agent reads constraints (planning)
 
 Step 4 — Agent proposes action
          Sends to Interceptor:
-         { session_id, claimed_principal, tool, action, metadata }
+         { session_id, claimed_principal, tool, action }
 
 Step 5 — Interceptor validates
          Reads session from State Store
@@ -309,9 +309,6 @@ Step 6a — BLOCK
 Step 6b — ALLOW
           Interceptor executes tool call
           Writes any triggered state transitions to State Store
-          Trigger map: query_pii_table on database → writes pii_accessed = true.
-          process_payment or spend on budget_spend → writes budget_spent = new total.
-          valid_credentials on reauth_check → writes reauth_verified = true.
           Writes ALLOWED record to execution log
           Returns result to Agent
 ```
@@ -451,8 +448,8 @@ The components swap out. The invariant does not.
 
 ## What This Architecture Does Not Solve
 
-Physical session hijacking where an authenticated user leaves their terminal unlocked.
-This is addressed by session expiry (FR-9) and
+Physical session hijacking where an authenticated user leaves their
+terminal unlocked. This is addressed by session expiry (FR-9) and
 re-authentication for sensitive actions (FR-10) — both implemented
 in the prototype — but these are mitigations, not complete solutions.
 Physical security is outside the scope of any software system.

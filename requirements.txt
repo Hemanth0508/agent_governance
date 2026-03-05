@@ -1,0 +1,9 @@
+# Agent Governance -- Interceptor + State Store Pattern
+# Required for browser UI and API server only.
+# Terminal simulator (agent_simulator.py) needs no additional packages.
+
+fastapi
+uvicorn
+
+# Optional -- for visual database inspection
+# datasette

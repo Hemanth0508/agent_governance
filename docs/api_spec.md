@@ -228,24 +228,38 @@ Examples:
 | Action            | Tool           | Triggers Constraint Write       |
 |-------------------|----------------|---------------------------------|
 | query_records     | database       | none                            |
-| query_pii_table   | database       | writes pii_accessed = true      |
-| post_message      | slack_api      | none                            |
-| process_payment   | budget_spend   | writes budget_spent = new total |
+| query_pii_table   | database       | writes pii_accessed = true       | First access allowed. Arms taint. Repeat requires reauth. |
+| post_message      | slack_api      | none                             | Blocked after pii_accessed = true (exfiltration path) |
+| process_payment   | budget_spend   | writes budget_spent = new total  | Amount must be greater than zero |
 | valid_credentials | reauth_check   | writes reauth_verified = true   |
 | access_sensitive  | sensitive_data | none (blocked if not reauthed)  |
 
 ---
 
-## Sensitive Actions List
 
-Actions that require reauth_verified = true before proceeding.
-Defined at the system level. Not configurable by the agent.
+## PII Taint Rules
 
-  query_pii_table
-  access_sensitive
+When query_pii_table executes and is allowed, pii_accessed = true is written
+to the constraints table for that session. This arms the session-level PII taint.
 
----
+Three rules apply on every subsequent request:
 
+Rule 1 -- Exfiltration path blocking:
+  If pii_accessed = true and action is post_message or send_email,
+  the request is blocked regardless of reauth status.
+  These are data-leaving-the-system paths. Blocked entirely after PII access.
+  No reauth bypass.
+
+Rule 2 -- Repeat PII access requires reauth:
+  If pii_accessed = true and action = query_pii_table,
+  the request requires reauth_verified = true.
+  First access is allowed to support legitimate analyst workflows.
+  Subsequent access within the same session requires confirmation.
+
+Rule 3 -- Session scoping:
+  The pii_accessed taint is scoped to session_id. It cannot bleed
+  across sessions. Eve accessing PII in her session does not affect
+  Sasha's session. Each session is an isolated taint context.
 
 ## Metadata Schema
 
@@ -277,9 +291,21 @@ Executed in this exact order on every call to validate(). First failing check re
       Fail: BLOCK "identity mismatch: claimed X, session bound to Y"
 
     Check 4 - Re-authentication gate
-      Is this action in the sensitive action list?
-      If yes: is reauth_verified == true?
+      Two conditions each independently trigger this gate:
+
+      Condition A: action is in SENSITIVE_ACTIONS (access_sensitive)
+        If reauth_verified != true: BLOCK
+
+      Condition B: pii_accessed == true AND action == query_pii_table
+        First PII access is allowed and arms the taint.
+        Repeat PII access requires reauth_verified == true.
+
+      If either condition is met and reauth_verified != true:
       Fail: BLOCK "re-authentication required for sensitive action"
+
+      Note: The agent cannot satisfy this check by passing
+      reauth_verified in metadata. The interceptor reads the
+      state store directly and ignores agent assertions.
 
     Check 5 - Dynamic constraint evaluation
       Read all relevant constraints for this session and action.
