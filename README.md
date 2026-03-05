@@ -20,6 +20,19 @@ The enforcement is guaranteed at execution time by infrastructure.
 Not by the agent. Not by the LLM. By the interceptor reading the
 state store directly on every single request.
 
+The agent proposes actions.
+The interceptor decides whether those actions are allowed.
+
+```
+Agent (LLM reasoning)
+        ↓
+Interceptor (enforcement boundary)
+        ↓
+State Store (session constraints)
+        ↓
+External Tools (DB / APIs / Slack)
+```
+
 ---
 
 ## Why It Exists
@@ -48,6 +61,9 @@ regardless.
 
 ```
 agent-governance/
+├── README.md
+├── DIRECTOR_BRIEF.md          Technical Q&A, production path, positioning
+├── requirements.txt
 ├── docs/
 │   ├── requirements.md        Problem, stakeholders, FR-1 to FR-10, NFR-1 to NFR-5
 │   ├── architecture.md        Five components, execution flow, design decisions
@@ -56,7 +72,8 @@ agent-governance/
 │   ├── consistency_model.md   Why eventual consistency breaks this system
 │   ├── threat_model.md        Seven threats and their mitigations
 │   ├── test_plan.md           24 test cases each linked to an architectural invariant
-│   └── risks.md               Eight risks across technical, operational, strategic
+│   ├── risks.md               Eight risks across technical, operational, strategic
+│   └── MANUAL.md              Step-by-step walkthrough of all five scenarios
 └── prototype/
     ├── state_store.py          SQLite state store -- sessions, constraints, execution_log
     ├── interceptor.py          Five-check enforcement engine
